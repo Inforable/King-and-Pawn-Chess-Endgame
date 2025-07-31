@@ -1,10 +1,41 @@
-import React from 'react';
+"use client";
+
+import React from "react";
+import { useGame } from "../context/GameContext";
 
 export default function MateInfo() {
-  return (
-    <div className="mt-5 bg-green-100 border border-green-300 rounded-md px-6 py-4 w-full max-w-[360px] text-center select-none">
-        <p className="text-green-700 font-semibold text-lg"> Mate in 7 moves </p>
-        <p className="text-sm text-green-900/75 mt-1"> Move: 0 | Paused </p>
-    </div>
-  );
+    const { state } = useGame();
+
+    const getMateStatus = () => {
+        if (!state.mateInfo) return "Position loaded";
+    
+        if (state.mateInfo.mate_in) {
+            return `Mate in ${state.mateInfo.mate_in} moves`;
+        }
+    
+        return state.mateInfo.status || "Analysis pending";
+    };
+
+    const getMoveStatus = () => {
+        const currentPlayer = state.currentTurn === 'white' ? 'AI Magnus' : 'Gukesh';
+        return `Move: ${state.gameHistory.length} | ${currentPlayer} to play`;
+    };
+
+    const getStatusColor = () => {
+        if (!state.mateInfo || !state.mateInfo.mate_in) {
+            return "bg-gray-50 border-gray-200 text-gray-600";
+        }
+    
+        return "bg-green-50 border-green-200 text-green-600";
+    };
+
+    return (
+        <div className={`mt-7 border rounded-md px-6 py-4 w-full max-w-md text-center select-none shadow ${getStatusColor()}`}>
+            <p className="font-bold text-2xl mb-1">{getMateStatus()}</p>
+            <p className="text-sm text-gray-500">{getMoveStatus()}</p>
+            {state.isLoading && (
+                <p className="text-xs text-blue-500 mt-1">Computing...</p>
+            )}
+        </div>
+    );
 }
