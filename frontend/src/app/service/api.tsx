@@ -8,7 +8,7 @@ export class ChessAPI {
         const response = await fetch(`${API_BASE}/upload`, {
             method: 'POST',
             body: formData
-        })
+        });
 
         if (!response.ok) {
             const errorData = await response.json().catch(() => ({ error: 'Upload failed' }));
@@ -20,45 +20,39 @@ export class ChessAPI {
 
     static async randomizeBoard() {
         const response = await fetch(`${API_BASE}/randomize`, {
-            method: 'POST'
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
         });
 
         if (!response.ok) {
-            const errorData = await response.json().catch(() => ({ error: 'Randomization failed' }));
-            throw new Error(errorData.error || 'Randomization failed');
+            const errorData = await response.json().catch(() => ({ error: 'Randomize failed' }));
+            throw new Error(errorData.error || 'Randomize failed');
         }
 
         return response.json();
     }
 
     static async solvePosition(fen: string, algorithm: string) {
-        try {
-            const response = await fetch(`${API_BASE}/solve`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ fen, algorithm })
-            });
+        const response = await fetch(`${API_BASE}/solve`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ fen, algorithm })
+        });
 
-            if (!response.ok) {
-                const errorData = await response.json().catch(() => ({ error: `HTTP ${response.status}` }));
-                throw new Error(errorData.error || 'Solve failed');
-            }
-
-            const data = await response.json();
-            return data;
-
-        } catch (error) {
-            if (error instanceof TypeError && error.message.includes('fetch')) {
-                throw new Error('Cannot connect to backend');
-            }
-            throw error;
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({ error: 'Solve failed' }));
+            throw new Error(errorData.error || 'Solve failed');
         }
+
+        return response.json();
     }
 
     static async makeMove(fen: string, move: string) {
-        const response = await fetch(`${API_BASE}/move`, {
+        const response = await fetch(`${API_BASE}/gukesh-move`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -75,6 +69,10 @@ export class ChessAPI {
     }
 
     static async getLegalMoves(fen: string, square?: string) {
+        if (!fen || fen.trim() === '') {
+            throw new Error('Board position (FEN) is required');
+        }
+        
         const response = await fetch(`${API_BASE}/legal-moves`, {
             method: 'POST',
             headers: {
@@ -86,6 +84,16 @@ export class ChessAPI {
         if (!response.ok) {
             const errorData = await response.json().catch(() => ({ error: 'Failed to get legal moves' }));
             throw new Error(errorData.error || 'Failed to get legal moves');
+        }
+
+        return response.json();
+    }
+
+        static async checkHealth() {
+        const response = await fetch(`${API_BASE}/health`);
+        
+        if (!response.ok) {
+            throw new Error('Server is not responding');
         }
 
         return response.json();

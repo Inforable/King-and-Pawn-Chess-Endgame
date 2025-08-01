@@ -12,7 +12,9 @@ interface GameState {
     mateInfo: any;
     analysis: any;
     gameHistory: string[];
+    historyIndex: number | null;
     isLoading: boolean;
+    connectionStatus: 'connected' | 'disconnected' | 'checking';
 }
 
 type GameAction = 
@@ -23,6 +25,8 @@ type GameAction =
     | { type: 'SET_ANALYSIS'; payload: any }
     | { type: 'SET_LOADING'; payload: boolean }
     | { type: 'ADD_TO_HISTORY'; payload: string }
+    | { type: 'SET_HISTORY_INDEX'; payload: number }
+    | { type: 'SET_CONNECTION_STATUS'; payload: 'connected' | 'disconnected' | 'checking' }
     | { type: 'RESET_GAME' };
 
 const initialState: GameState = {
@@ -35,18 +39,35 @@ const initialState: GameState = {
     mateInfo: null,
     analysis: null,
     gameHistory: [],
-    isLoading: false
+    historyIndex: null,
+    isLoading: false,
+    connectionStatus: 'checking'
 };
 
 function gameReducer(state: GameState, action: GameAction): GameState {
     switch (action.type) {
         case 'SET_BOARD':
+            const boardFen = action.payload.board;
+            console.log('SET_BOARD payload:', action.payload);
+            console.log('Board FEN:', boardFen);
+            
+            if (!boardFen) {
+                console.error('SET_BOARD called without board field!');
+                return state;
+            }
+            
+            const newCurrentTurn = boardFen.includes(' w ') ? 'white' : 'black';
+            console.log('Calculated currentTurn:', newCurrentTurn);
+            
             return {
                 ...state,
-                board: action.payload.board,
+                board: boardFen,
                 positions: action.payload.positions,
                 mateInfo: action.payload.mateInfo || null,
-                currentTurn: action.payload.board.includes(' w ') ? 'white' : 'black'
+                currentTurn: newCurrentTurn,
+                selectedSquare: null,
+                legalMoves: [],
+                historyIndex: null
             };
         case 'SET_SELECTED_SQUARE':
             return { ...state, selectedSquare: action.payload };
@@ -59,12 +80,21 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         case 'SET_LOADING':
             return { ...state, isLoading: action.payload };
         case 'ADD_TO_HISTORY':
-            return { ...state, gameHistory: [...state.gameHistory, action.payload] };
+            return { 
+                ...state, 
+                gameHistory: [...state.gameHistory, action.payload],
+                historyIndex: null
+            };
+        case 'SET_HISTORY_INDEX':
+            return { ...state, historyIndex: action.payload };
+        case 'SET_CONNECTION_STATUS':
+            return { ...state, connectionStatus: action.payload };
         case 'RESET_GAME':
             return { 
                 ...initialState, 
                 selectedAlgorithm: state.selectedAlgorithm,
-                currentTurn: 'black'
+                currentTurn: 'black',
+                connectionStatus: state.connectionStatus
             };
         default:
             return state;

@@ -12,6 +12,7 @@ export default function GameSetup() {
         const file = event.target.files?.[0];
         if (!file) return;
 
+        // Load file
         dispatch({ type: "SET_LOADING", payload: true });
         try {
             const result = await ChessAPI.uploadBoard(file);
@@ -21,7 +22,7 @@ export default function GameSetup() {
                     payload: {
                         board: result.board,
                         positions: result.positions,
-                        mateInfo: result.mateInfo
+                        mateInfo: result.mate_info
                     }
                 });
                 dispatch({ type: 'ADD_TO_HISTORY', payload: result.board });
@@ -37,6 +38,7 @@ export default function GameSetup() {
         }
     };
 
+    // Randomize board
     const handleRandomize = async () => {
         dispatch({ type: "SET_LOADING", payload: true });
 
@@ -48,7 +50,7 @@ export default function GameSetup() {
                     payload: {
                         board: result.board,
                         positions: result.positions,
-                        mateInfo: result.mateInfo
+                        mateInfo: result.mate_info
                     }
                 });
                 dispatch({ type: 'ADD_TO_HISTORY', payload: result.board });
@@ -61,6 +63,7 @@ export default function GameSetup() {
         }
     };
 
+    // Handle algorithm selection
     const handleAlgorithmChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
         const selectedAlgorithm = event.target.value;
         dispatch({ type: "SET_ALGORITHM", payload: selectedAlgorithm });
@@ -105,7 +108,7 @@ export default function GameSetup() {
                     className="w-full rounded-md border border-slate-200 px-4 py-2 bg-white hover:bg-slate-50 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                     <option value="" disabled>Select algorithm</option>
-                    <option value="minimax">Minimax + Alpha-Beta Pruning</option>
+                    <option value="mabp">Minimax + Alpha-Beta Pruning</option>
                     <option value="iterative_deepening">Iterative Deepening Search</option>
                     <option value="pvs">Principal Variation Search (PVS)</option>
                     <option value="mcts">Monte Carlo Tree Search (MCTS)</option>

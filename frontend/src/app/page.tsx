@@ -2,7 +2,6 @@ import React from "react";
 import ChessBoard from "./components/ChessBoard";
 import GameSetup from "./components/GameSetup";
 import GameControl from "./components/GameControl";
-import MateInfo from "./components/MateInfo";
 import { GameProvider} from "./context/GameContext";
 
 export default function Page() {
@@ -14,7 +13,7 @@ export default function Page() {
                     <p className="text-lg text-slate-600 mb-4"> Chess Endgame Solver </p>
                     <div className="flex justify-center gap-4 text-sm text-slate-700">
                         <span className="px-3 py-1 border border-slate-300 rounded-full bg-white flex items-center gap-2 shadow-sm">
-                            AI Magnus: <i className="fas fa-chess-king text-gray-400 text-xl"></i> <i className="fas fa-chess-pawn text-gray-400 text-xl"></i> <strong> (White) </strong>
+                            AI Magnus: <i className="fas fa-chess-king text-white text-xl drop-shadow"></i> <i className="fas fa-chess-pawn text-white text-xl drop-shadow"></i> <strong> (White) </strong>
                         </span>
                         <span className="px-3 py-1 border border-slate-300 rounded-full bg-white flex items-center gap-2 shadow-sm">
                             Gukesh: <i className="fas fa-chess-king text-black text-xl"></i> <strong> (Black) </strong>
@@ -25,9 +24,8 @@ export default function Page() {
                     <section className="bg-white rounded-xl shadow p-6 w-full max-w-md flex flex-col gap-6 border border-slate-100">
                         <GameSetup />
                     </section>
-                    <section aria-label="Chess Board" className="bg-white rounded-xl shadow p-6 w-full max-w-md flex flex-col gap-6 border border-slate-100">
+                    <section aria-label="Chess Board" className="bg-white rounded-xl shadow p-6 w-full max-w-lg flex flex-col gap-6 border border-slate-100">
                         <ChessBoard />
-                        <MateInfo />
                     </section>
                     <section className="bg-white rounded-xl shadow p-6 w-full max-w-md flex flex-col gap-8 border border-slate-100">
                         <GameControl />
