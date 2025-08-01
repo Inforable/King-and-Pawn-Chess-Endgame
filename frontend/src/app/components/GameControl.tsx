@@ -8,17 +8,19 @@ export default function GameControl() {
     const { state, dispatch } = useGame();
 
     const handleSolve = async () => {
+        // Validasi untuk board dan algoritma
         if (!state.board || !state.selectedAlgorithm) {
             alert('Please select a board and an algorithm');
             return;
         }
 
-        const isWhiteTurn = state.board.includes(' w ');
-        if (!isWhiteTurn) {
-            alert('Wait for the black player (Gukesh) to make a move');
+        // Validasi giliran untuk AI Magnus
+        if (state.currentTurn !== 'white') {
+            alert(`Wait for Gukesh to make a move first. Current turn: ${state.currentTurn}`);
             return;
         }  
         
+        // Solve
         dispatch({ type: "SET_LOADING", payload: true });
         try {
             const result = await ChessAPI.solvePosition(state.board, state.selectedAlgorithm);
@@ -42,11 +44,30 @@ export default function GameControl() {
         }
     };
 
-    const handleReset = () => {
-        dispatch({ type: 'RESET_GAME' });
+    const isButtonDisabled = state.isLoading || !state.board || !state.selectedAlgorithm || state.currentTurn !== 'white';
+
+    const getMateStatusDisplay = () => {
+        if (!state.mateInfo) return "Position loaded";
+        
+        // Tampilkan informasi mate in x moves, jika sudah ada
+        if (state.mateInfo.mate_in !== null && state.mateInfo.mate_in !== undefined) {
+            return `Mate in ${state.mateInfo.mate_in} moves for ${state.mateInfo.for_side}`;
+        }
+        
+        return state.mateInfo.status || "Game continues";
     };
 
-    const isButtonDisabled = state.isLoading || !state.board || !state.selectedAlgorithm || state.currentTurn !== 'white';
+    const getMateStatusColor = () => {
+        if (!state.mateInfo || !state.mateInfo.mate_in) {
+            return "bg-gray-50 border-gray-200 text-gray-600";
+        }
+        
+        if (state.mateInfo.for_side === "AI Magnus") {
+            return "bg-green-50 border-green-200 text-green-700";
+        } else {
+            return "bg-red-50 border-red-200 text-red-700";
+        }
+    };
 
     return (
         <div>
@@ -65,71 +86,59 @@ export default function GameControl() {
             </div>
 
             <div className="mb-6">
-                <div className="mb-2 font-medium">Game Action</div>
-                <button
-                    onClick={handleReset}
-                    className="w-full border border-slate-200 rounded-md px-3 py-2 bg-red-50 hover:bg-red-100 shadow-sm flex items-center justify-center gap-2 font-medium"
-                >
-                    <i className="fas fa-undo text-lg text-red-600"></i>
-                    Reset Game
-                </button>
-            </div>
-
-            <div className="mb-6">
                 <div className="mb-2 font-medium">Game Status</div>
-                <div className="text-sm space-y-1">
-                    <div className="flex justify-between">
-                        <span>Current Turn:</span>
-                        <span className={`font-medium ${state.currentTurn === 'white' ? 'text-gray-600' : 'text-black'}`}>
-                            {state.currentTurn === 'white' ? 'AI Magnus' : 'Gukesh'}
-                        </span>
+                <div className={`border rounded-md p-3 text-center ${getMateStatusColor()}`}>
+                    <div className="font-semibold text-lg mb-1">
+                        {getMateStatusDisplay()}
                     </div>
-                    <div className="flex justify-between">
-                        <span>Selected Algorithm:</span>
-                        <span className="font-medium">
-                            {state.selectedAlgorithm || 'None'}
-                        </span>
+                    <div className="text-sm opacity-75">
+                        Move: {state.gameHistory.length} | {state.currentTurn === 'white' ? 'AI Magnus' : 'Gukesh'} to play
                     </div>
-                    <div className="flex justify-between">
-                        <span>Moves Played:</span>
-                        <span className="font-medium">{state.gameHistory.length}</span>
-                    </div>
+                    {state.isLoading && (
+                        <div className="text-xs text-blue-500 mt-1">Computing...</div>
+                    )}
                 </div>
             </div>
 
             {state.analysis && (
-                <div>
+                <div className="mb-6">
                     <div className="mb-2 font-medium">Analysis</div>
                     <dl className="text-sm text-slate-600 leading-relaxed space-y-1">
                         <div className="flex justify-between">
                             <dt className="font-medium">Algorithm:</dt>
-                            <dd>{state.analysis.algorithm}</dd>
+                            <dd className="text-blue-600">{state.analysis.algorithm}</dd>
                         </div>
-                        <div className="flex justify-between">
-                            <dt className="font-medium">Depth/Sims:</dt>
-                            <dd>{state.analysis.depth || state.analysis.simulations || state.analysis.max_depth_reached}</dd>
-                        </div>
-                        <div className="flex justify-between">
-                            <dt className="font-medium">Score:</dt>
-                            <dd>{state.analysis.score || 'N/A'}</dd>
-                        </div>
-                        <div className="flex justify-between">
-                            <dt className="font-medium">Nodes:</dt>
-                            <dd>{state.analysis.nodes?.toLocaleString()}</dd>
-                        </div>
-                        <div className="flex justify-between">
-                            <dt className="font-medium">Time:</dt>
-                            <dd>{state.analysis.time}s</dd>
-                        </div>
-                        {state.analysis.mate_in && (
+                        
+                        {state.analysis.nodes && (
                             <div className="flex justify-between">
-                                <dt className="font-medium">Mate in:</dt>
-                                <dd className="text-green-600 font-bold">{state.analysis.mate_in}</dd>
+                                <dt className="font-medium">Nodes Evaluated:</dt>
+                                <dd className="text-purple-600">{state.analysis.nodes.toLocaleString()}</dd>
+                            </div>
+                        )}
+                        
+                        {state.analysis.simulations && (
+                            <div className="flex justify-between">
+                                <dt className="font-medium">Simulations:</dt>
+                                <dd className="text-green-600">{state.analysis.simulations.toLocaleString()}</dd>
+                            </div>
+                        )}
+                        
+                        {state.analysis.max_depth_reached && (
+                            <div className="flex justify-between">
+                                <dt className="font-medium">Max Depth:</dt>
+                                <dd className="text-indigo-600">{state.analysis.max_depth_reached}</dd>
+                            </div>
+                        )}
+                        
+                        {state.analysis.time && (
+                            <div className="flex justify-between">
+                                <dt className="font-medium">Time Taken:</dt>
+                                <dd className="text-orange-600">{state.analysis.time}s</dd>
                             </div>
                         )}
                     </dl>
                 </div>
-            )}  
+            )}
         </div>
-    )
+    );
 }
