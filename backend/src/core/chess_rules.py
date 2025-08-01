@@ -99,30 +99,105 @@ def randomize_board():
         except:
             continue
 
-def check_mate_in_moves(board, max_depth=3):
-    try:
+def mate_search(board, max_depth=7):
+    # Kondisi jika game over
+    if board.is_checkmate():
+        winner = "AI Magnus" if board.turn == chess.BLACK else "black"
+        return {
+            "mate_in": 0,
+            "winner": winner,
+            "status": f"Checkmate - {winner.title()} wins"
+        }
+    
+    # Kondisi jika draw
+    if board.is_stalemate():
+        return {
+            "mate_in": None,
+            "for_side": None,
+            "status": "Stalemate - Draw"
+        }
+    
+    # Kondisi jika insufficient material
+    if board.is_insufficient_material():
+        return {
+            "mate_in": None,
+            "for_side": None,
+            "status": "Insufficient Material - Draw"
+        }
+    
+    for depth in range(1, max_depth + 1):
+        # Cek mate untuk white (AI Magnus)
+        if board.turn == chess.WHITE:
+            mate_moves = search_forced_mate(board, depth, True)
+            if mate_moves is not None:
+                return {
+                    "mate_in": mate_moves,
+                    "for_side": "AI Magnus",
+                    "status": f"Mate in {mate_moves} moves for AI Magnus"
+                }
+        
+        board_copy = board.copy()
+        board_copy.turn = chess.BLACK
+        # Cek mate untuk black (Gukesh)
+        mate_moves = search_forced_mate(board_copy, depth, False)
+        if mate_moves is not None:
+            return {
+                "mate_in": mate_moves,
+                "for_side": "Gukesh",
+                "status": f"Mate in {mate_moves} moves for Gukesh"
+            }
+    
+    return {
+        "mate_in": None,
+        "for_side": None,
+        "status": "Game Continues"
+    }
+
+def search_forced_mate(board, max_depth, is_attacker_turn):
+    def mate_minimax(board, depth, is_maximizing):
+        # Base case jika checkmate ditemukan
         if board.is_checkmate():
-            return {
-                "mate_in": 0,
-                "for_side": "white" if board.turn == chess.BLACK else "black",
-                "status": "Checkmate"
-            }
+            return depth
         
-        if board.is_stalemate():
-            return {
-                "mate_in": None,
-                "for_side": None,
-                "status": "Stalemate"
-            }
+        # Base case jika checkmate gada
+        if board.is_stalemate() or board.is_insufficient_material() or depth == 0:
+            return None
         
-        return {
-            "mate_in": None,
-            "for_side": None,
-            "status": "Game continues"
-        }
-    except:
-        return {
-            "mate_in": None,
-            "for_side": None,
-            "status": "Unknown"
-        }
+        if is_maximizing:
+            # Find moves yang mengarah ke mate
+            for move in board.legal_moves:
+                board.push(move)
+                result = mate_minimax(board, depth - 1, False)
+                board.pop()
+
+                if result is not None:
+                    return result
+            
+            return None
+        else:
+            # Cek semua moves apakah mengarah ke mate
+            if not list(board.legal_moves):
+                return None
+            
+            all_moves = True
+            shortest_mate = float('inf')
+
+            for move in board.legal_moves:
+                board.push(move)
+                result = mate_minimax(board, depth - 1, True)
+                board.pop()
+
+                if result is None:
+                    all_moves = False
+                    break
+                shortest_mate = min(shortest_mate, result)
+            
+            if all_moves and shortest_mate != float('inf'):
+                return shortest_mate
+            
+            return None
+    
+    result = mate_minimax(board, max_depth, is_attacker_turn)
+    if result is not None:
+        return max_depth - result + 1
+    return None
