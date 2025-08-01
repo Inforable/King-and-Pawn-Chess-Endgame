@@ -1,163 +1,278 @@
 "use client";
 
-import React from "react";
-import { useGame } from "../context/GameContext"
-import { ChessAPI } from "../service/api"
+import React, { useEffect } from "react";
+import { useGame } from "../context/GameContext";
+import { ChessAPI } from "../service/api";
 
 export default function ChessBoard() {
     const { state, dispatch } = useGame();
 
-    const files = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
+    const SQUARE_SIZE = 56; // Ukuran dari setiap square di papan catur
+    const LABEL_SIZE = 32; // Ukuran label di papan catur
+
     const ranks = ['8', '7', '6', '5', '4', '3', '2', '1'];
+    const files = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
+
+    useEffect(() => {
+        // Load legal moves dari square yang dipilih
+        const loadLegalMoves = async () => {
+            if (state.selectedSquare && state.board) {
+                try {
+                    const result = await ChessAPI.getLegalMoves(state.board, state.selectedSquare);
+                    if (result.success) {
+                        dispatch({ type: 'SET_LEGAL_MOVES', payload: result.legal_moves });
+                    }
+                } catch (error) {
+                    console.error('Error loading legal moves:', error);
+                }
+            } else {
+                dispatch({ type: 'SET_LEGAL_MOVES', payload: [] });
+            }
+        };
+
+        loadLegalMoves();
+    }, [state.selectedSquare, state.board, dispatch]);
 
     const handleSquareClick = async (square: string) => {
+        // Validasi apakah board sudah ada atau belum
+        if (!state.board || state.board.trim() === '') {
+            alert('Please upload a board file or randomize');
+            return;
+        }
+
+        // Validasi apakah posisi sudah dimuat
+        if (!state.positions || Object.keys(state.positions).length === 0) {
+            alert('Board positions not loaded properly');
+            return;
+        }
+
+        // Validasi giliran pemain
         if (state.currentTurn !== 'black') {
             alert('Wait for AI Magnus to move');
             return;
         }
-        
-        // Kondisi jika king hitam tidak ada
-        if (!state.positions.black_king) {
-            return;
-        }
 
-        // Kondisi jika square ditekan dua kali
-        if (state.selectedSquare === square) {
-            dispatch({ type: 'SET_SELECTED_SQUARE', payload: null }); // Membatalkan pilihan
-            dispatch({ type: 'SET_LEGAL_MOVES', payload: [] }); // Menghilangkan legal moves
-            return;
-        }
-        
-        // Kondisi jika square yang dipilih adalah king hitam (Gukesh)
-        if (square === state.positions.black_king) {
-            dispatch({ type: 'SET_SELECTED_SQUARE', payload: square });
-            try {
-                const result = await ChessAPI.getLegalMoves(state.board, square);
-                dispatch({ type: 'SET_LEGAL_MOVES', payload: result.legal_moves || [] });
-            } catch (error) {
-                console.error('Error getting legal moves:', error);
+        // Event ketika menekan suatu square
+        if (state.selectedSquare) {
+            // Membatalkan pilihan square jika square yang sama ditekan
+            if (state.selectedSquare === square) {
+                dispatch({ type: 'SET_SELECTED_SQUARE', payload: null });
+                return;
             }
-        }
 
-        // Kondisi jika square telah dipilih dan legal moves tersedia
-        if (state.selectedSquare && state.legalMoves.includes(square)) {
-            try {
+            // Move ke square lain jika legal moves
+            if (state.legalMoves.includes(square)) {
                 const move = `${state.selectedSquare}${square}`;
-                const result = await ChessAPI.makeMove(state.board, move);
-
-                if (result.success) {
-                    dispatch({
-                        type: 'SET_BOARD',
-                        payload: {
-                            board: result.board,
-                            positions: result.positions,
-                            mateInfo: result.mate_info
-                        }
-                    });
+                await makeMove(move);
+            } else {
+                const piece = getPieceAt(square);
+                if (piece && piece.includes('black')) {
+                    dispatch({ type: 'SET_SELECTED_SQUARE', payload: square });
+                } else {
                     dispatch({ type: 'SET_SELECTED_SQUARE', payload: null });
-                    dispatch({ type: 'SET_LEGAL_MOVES', payload: [] });
-                    dispatch({ type: 'ADD_TO_HISTORY', payload: result.board });
                 }
-            } catch (error) {
-                console.error('Error making move:', error);
-                alert('Invalid move');
+            }
+        } else {
+            const piece = getPieceAt(square);
+            if (piece && piece.includes('black')) {
+                dispatch({ type: 'SET_SELECTED_SQUARE', payload: square });
             }
         }
     };
 
-    const getPieceIcon = (square: string) => {
-        if (square === state.positions.white_king) {
-            return <i className="fas fa-chess-king text-gray-400 text-xl"></i>;
+    const makeMove = async (move: string) => {
+        try {
+            const result = await ChessAPI.makeMove(state.board, move);
+
+            if (result.success) {
+                dispatch({
+                    type: 'SET_BOARD',
+                    payload: {
+                        board: result.board,
+                        positions: result.positions,
+                        mateInfo: result.mate_info
+                    }
+                });
+                dispatch({ type: 'SET_SELECTED_SQUARE', payload: null });
+                dispatch({ type: 'SET_LEGAL_MOVES', payload: [] });
+                dispatch({ type: 'ADD_TO_HISTORY', payload: result.board });
+            }
+        } catch (error) {
+            console.error('Error making move:', error);
+            alert('Invalid move. Please try again.');
         }
-        if (square === state.positions.black_king) {
-            return <i className="fas fa-chess-king text-black text-xl"></i>;
-        }
-        if (square === state.positions.white_pawn) {
-            return <i className="fas fa-chess-pawn text-gray-400 text-xl"></i>;
-        }
-        if (square === state.positions.white_queen) {
-            return <i className="fas fa-chess-queen text-gray-400 text-xl"></i>;
+    };
+
+    const getPieceAt = (square: string) => {
+        if (!state.positions) return null; // Jika posisi komponen catur tidak ada
+
+        for (const [piece, position] of Object.entries(state.positions)) {
+            if (position === square) {
+                return piece;
+            }
         }
         return null;
     };
 
-    const getSquareClass = (square: string, file: string, rank: string) => {
-        const fileIdx = files.indexOf(file);
-        const rankIdx = ranks.indexOf(rank);
-        const isLightSquare = (fileIdx + rankIdx) % 2 === 0;
+    const renderPiece = (piece: string | null) => {
+        if (!piece) return null;
 
-        let classes = `w-12 h-12 flex items-center justify-center text-2xl cursor-pointer border border-gray-300 ${
-            isLightSquare ? 'bg-amber-100' : 'bg-amber-800'
-        }`;
+        const pieceIcons: Record<string, string> = {
+            'white_king': 'fas fa-chess-king text-white',
+            'white_pawn': 'fas fa-chess-pawn text-white',
+            'white_queen': 'fas fa-chess-queen text-white',
+            'white_rook': 'fas fa-chess-rook text-white',
+            'white_bishop': 'fas fa-chess-bishop text-white',
+            'white_knight': 'fas fa-chess-knight text-white',
+            'black_king': 'fas fa-chess-king text-gray-800',
+            'black_pawn': 'fas fa-chess-pawn text-gray-800',
+            'black_queen': 'fas fa-chess-queen text-gray-800',
+            'black_rook': 'fas fa-chess-rook text-gray-800',
+            'black_bishop': 'fas fa-chess-bishop text-gray-800',
+            'black_knight': 'fas fa-chess-knight text-gray-800',
+        };
 
-        // Untuk highlight selected square
-        if (state.selectedSquare === square) {
-            classes += ' ring-4 ring-blue-400';
-        }
-
-        // Untuk highlight legal moves
-        if (state.legalMoves.includes(square)) {
-            classes += ' bg-green-200 ring-2 ring-green-400';
-        }
-
-        // Untuk highlight black king (Gukesh)
-        if (square === state.positions.black_king && state.currentTurn === 'black') {
-            classes += ' ring-2 ring-yellow-400';
-        }
-
-        return classes;
+        return <i className={`${pieceIcons[piece]} text-4xl drop-shadow-lg`} />;
     };
 
+    const getSquareColor = (file: string, rank: string) => {
+        const fileIndex = files.indexOf(file);
+        const rankIndex = ranks.indexOf(rank);
+        const isLight = (fileIndex + rankIndex) % 2 === 0;
+        return isLight ? 'bg-amber-100' : 'bg-amber-700';
+    };
+
+    const isSquareSelected = (square: string) => {
+        return state.selectedSquare === square;
+    };
+
+    const isSquareLegalMove = (square: string) => {
+        return state.legalMoves.includes(square);
+    };
+
+    if (!state.board) {
+        return (
+            <div
+                className="bg-slate-100 rounded-lg flex items-center justify-center shadow-inner"
+                style={{ width: `${SQUARE_SIZE * 8}px`, height: `${SQUARE_SIZE * 8}px` }}
+            >
+                <div className="text-center">
+                    <i className="fas fa-chess-board text-6xl text-slate-400 mb-4"></i>
+                    <p className="text-lg text-slate-600 mb-2">No board loaded</p>
+                    <p className="text-sm text-slate-500">Upload a file or randomize to start</p>
+                </div>
+            </div>
+        );
+    }
+
     return (
-        <div>
-            <div className="relative">
-                <div className="grid grid-cols-8 border-2 border-gray-400">
-                    {ranks.map((rank, rankIdx) =>
-                        files.map((file, fileIdx) => {
-                            const square = `${file}${rank}`;
-                            const piece = getPieceIcon(square);
+        <div className="flex flex-col items-center">
+            {/* Board Container */}
+            <div
+                className="inline-block bg-slate-800 p-4 rounded-xl shadow-2xl"
+                style={{
+                    width: `${SQUARE_SIZE * 8 + LABEL_SIZE + 16}px`,
+                    height: `${SQUARE_SIZE * 8 + LABEL_SIZE + 16}px`,
+                }}
+            >
+                <div className="flex items-start">
+                    {/* Rank label */}
+                    <div className="flex flex-col mr-1">
+                        {ranks.map(rank => (
+                            <div
+                                key={rank}
+                                className="flex items-center justify-center"
+                                style={{ width: `${LABEL_SIZE}px`, height: `${SQUARE_SIZE}px` }}
+                            >
+                                <span className="text-base font-bold text-amber-100 select-none">{rank}</span>
+                            </div>
+                        ))}
+                    </div>
 
-                            return (
-                                <div
-                                key={square}
-                                className={getSquareClass(square, file, rank)}
-                                onClick={() => handleSquareClick(square)}
-                                >
-                                    {piece}
-                                </div>
-                            );
-                        })
-                    )}
+                    {/* Square dari board */}
+                    <div
+                        className="grid grid-cols-8 gap-0 border-2 border-slate-700 rounded-lg overflow-hidden"
+                        style={{
+                            width: `${SQUARE_SIZE * 8}px`,
+                            height: `${SQUARE_SIZE * 8}px`,
+                        }}
+                    >
+                        {ranks.map(rank =>
+                            files.map(file => {
+                                const square = `${file}${rank}`;
+                                const piece = getPieceAt(square);
+                                const isSelected = isSquareSelected(square);
+                                const isLegalMove = isSquareLegalMove(square);
+
+                                return (
+                                    <div
+                                        key={square}
+                                        className={`
+                                            flex items-center justify-center cursor-pointer
+                                            relative transition-all duration-150
+                                            ${getSquareColor(file, rank)}
+                                            ${isSelected ? 'ring-4 ring-blue-400 ring-inset' : ''}
+                                            ${isLegalMove ? 'ring-2 ring-green-400 ring-inset' : ''}
+                                            hover:brightness-110
+                                        `}
+                                        style={{ width: `${SQUARE_SIZE}px`, height: `${SQUARE_SIZE}px` }}
+                                        onClick={() => handleSquareClick(square)}
+                                    >
+                                        {renderPiece(piece)}
+
+                                        {/* Legal moves highlight */}
+                                        {isLegalMove && !piece && (
+                                            <div className="absolute inset-0 flex items-center justify-center">
+                                                <div className="w-4 h-4 bg-green-500 rounded-full opacity-75"></div>
+                                            </div>
+                                        )}
+                                        {isLegalMove && piece && (
+                                            <div className="absolute inset-0 ring-2 ring-red-500 ring-inset"></div>
+                                        )}
+                                    </div>
+                                );
+                            })
+                        )}
+                    </div>
                 </div>
 
-                <div className="flex justify-between mt-2">
-                    {files.map((file) => (
-                        <div key={file} className="w-8 text-center text-sm font-medium text-gray-600">
-                            {file}
-                        </div>
-                    ))}
-                </div>
-
-                <div className="absolute -left-5 top-0 h-full flex flex-col gap-0">
-                    {ranks.map((rank) => (
-                        <div key={rank} className="h-12 flex items-center justify-center text-sm font-medium text-gray-600">
-                            {rank}
-                        </div>
-                    ))}
+                {/* File label */}
+                <div className="flex items-center" style={{ marginTop: '2px' }}>
+                    <div style={{ width: `${LABEL_SIZE}px` }}></div>
+                    <div className="grid grid-cols-8 gap-0">
+                        {files.map(file => (
+                            <div
+                                key={file}
+                                className="flex items-center justify-center"
+                                style={{ width: `${SQUARE_SIZE}px`, height: `${LABEL_SIZE}px` }}
+                            >
+                                <span className="text-base font-bold text-amber-100 select-none" style={{ lineHeight: `${LABEL_SIZE}px` }}>{file}</span>
+                            </div>
+                        ))}
+                    </div>
                 </div>
             </div>
 
-            {state.mateInfo && state.mateInfo.status !== 'Game continues' && (
-                <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-md">
-                    <div className="font-medium text-yellow-800">Game Status</div>
-                    <div className="text-sm text-yellow-700">{state.mateInfo.status}</div>
-                    {state.mateInfo.moves && (
-                        <div className="text-sm text-yellow-700">
-                            Mate in {state.mateInfo.mate_in} for {state.mateInfo.for_side}
-                        </div>
-                    )}
+            {/* Turn info */}
+            <div className="mt-4 text-center">
+                <div className="text-lg font-medium text-slate-700 mb-2">
+                    <strong>Current Turn:</strong>
+                    <span className={`ml-2 ${state.currentTurn === 'white' ? 'text-blue-600' : 'text-red-600'}`}>
+                        {state.currentTurn === 'white' ? 'AI Magnus (White)' : 'Gukesh (Black)'}
+                    </span>
                 </div>
-            )}
+
+                {state.selectedSquare && (
+                    <div className="text-sm text-blue-600 bg-blue-50 rounded-md p-2 border border-blue-200 inline-block">
+                        <strong>Selected:</strong> {state.selectedSquare.toUpperCase()}
+                        {state.legalMoves.length > 0 && (
+                            <span className="ml-2 text-green-600">
+                                ({state.legalMoves.length} legal moves)
+                            </span>
+                        )}
+                    </div>
+                )}
+            </div>
         </div>
-    )
+    );
 }
