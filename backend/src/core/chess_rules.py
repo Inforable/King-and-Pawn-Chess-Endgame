@@ -93,6 +93,9 @@ def randomize_board():
             
             # Black (Gukesh) to move
             board.turn = chess.BLACK
+
+            board.fullmove_number = 1
+            board.halfmove_clock = 0
             
             if validate_board(board) and not board.is_check():
                 return board

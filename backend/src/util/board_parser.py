@@ -61,6 +61,9 @@ def parse_board(file):
         # Black (Gukesh) to move
         board.turn = chess.BLACK
 
+        board.fullmove_number = 1
+        board.halfmove_clock = 0
+
         return board
 
     except Exception as e:
