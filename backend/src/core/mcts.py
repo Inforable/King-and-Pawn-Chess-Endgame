@@ -90,25 +90,36 @@ def monte_carlo_tree_search(fen, max_iterations=5000, time_limit=5.0):
     try:
         board = chess.Board(fen)
 
-        # Cek posisi mate
+        start_time = time.time()
+
+        # Cek mate
         mate_result = mate_search(board)
-        if mate_result.get('mate_in') is not None:
-            return {
-                'mate': True,
+
+        # Jika game over (checkmate, stalemate, and insufficient material)
+        if board.is_game_over():
+            end_time = time.time()
+            time_taken = end_time - start_time
+
+            result = {
+                'mate': False,
                 'best_move': None,
                 'evaluation': 0,
-                'mate_info': mate_result
+                'iterations': 0,
+                'time': time_taken,
+                'game_over': True,
             }
-        
-        board = chess.Board(fen)
-        
-        if board.is_game_over():
-            result = {'mate': True, 'best_move': None, 'evaluation': 0}
+
             if board.is_checkmate():
-                result['evaluation'] = -1000 if board.turn == chess.WHITE else 1000
+                result['mate'] = True
+                result['evaluation'] = -9000 if board.turn == chess.WHITE else 9000
+                result['game_over_reason'] = 'Checkmate'
+            elif board.is_stalemate():
+                result['game_over_reason'] = 'Stalemate'
+            elif board.is_insufficient_material():
+                result['game_over_reason'] = 'Insufficient Material'
+            
             return result
         
-        start_time = time.time()
         root = MCTSNode(board)
         
         iteration = 0

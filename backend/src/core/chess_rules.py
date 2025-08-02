@@ -102,7 +102,7 @@ def randomize_board():
         except:
             continue
 
-def mate_search(board, max_depth=7):
+def mate_search(board, max_depth=5):
     # Kondisi jika game over
     if board.is_checkmate():
         winner = "AI Magnus" if board.turn == chess.BLACK else "black"

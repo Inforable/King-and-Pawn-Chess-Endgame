@@ -3,28 +3,39 @@ import time
 from .chess_rules import mate_search
 from .evaluation import evaluate_board
 
-def principal_variation_search(fen, depth=7):
+def principal_variation_search(fen, depth=5):
     try:
         board = chess.Board(fen)
 
-        # Cek posisi mate
+        start_time = time.time()
+
+        # Cek mate
         mate_result = mate_search(board)
-        if mate_result.get('mate_in') is not None:
-            return {
-                'mate': True,
+
+        # Jika game over (checkmate, stalemate, and insufficient material)
+        if board.is_game_over():
+            end_time = time.time()
+            time_taken = end_time - start_time
+
+            result = {
+                'mate': False,
                 'best_move': None,
                 'evaluation': 0,
-                'mate_info': mate_result
+                'depth': depth,
+                'time': time_taken,
+                'game_over': True,
             }
-        
-        # Jika game over
-        if board.is_game_over():
-            result = {'mate': True, 'best_move': None, 'evaluation': 0, 'depth': depth}
+
             if board.is_checkmate():
+                result['mate'] = True
                 result['evaluation'] = -9000 if board.turn == chess.WHITE else 9000
+                result['game_over_reason'] = 'Checkmate'
+            elif board.is_stalemate():
+                result['game_over_reason'] = 'Stalemate'
+            elif board.is_insufficient_material():
+                result['game_over_reason'] = 'Insufficient Material'
+            
             return result
-        
-        start_time = time.time()
         
         best_move, best_score = pvs_root(board, depth)
         

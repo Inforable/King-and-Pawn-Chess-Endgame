@@ -87,28 +87,42 @@ def solve():
         print(f"Solving with algorithm: {algorithm}")
         
         if algorithm == 'mabp':
-            result = minimax_alpha_beta_pruning(fen, depth=7)
-            print(f"Result from MABP: {result}")
+            result = minimax_alpha_beta_pruning(fen, depth=5)
         elif algorithm == 'pvs':
-            result = principal_variation_search(fen, depth=7)
-            print(f"Result from PVS: {result}")
+            result = principal_variation_search(fen, depth=5)
         elif algorithm == 'mcts':
             result = monte_carlo_tree_search(fen, time_limit=5.0)
-            print(f"Result from MCTS: {result}")
         elif algorithm == 'iterative_deepening':
-            result = iterative_deepening_search(fen, max_depth=7, time_limit=5.0)
-            print(f"Result from Iterative Deepening: {result}")
+            result = iterative_deepening_search(fen, max_depth=5, time_limit=5.0)
         else:
             return jsonify({"success": False, "error": "Invalid algorithm"}), 400
 
         if 'error' in result:
             return jsonify({"success": False, "error": result['error']}), 400
         
+        if result.get('game_over'):
+            return jsonify({
+                "success": True,
+                "game_over": True,
+                "game_over_reason": result.get('game_over_reason'),
+                "analysis": result,
+                "message": f"Game is over: {result.get('game_over_reason', 'unknown')}"
+            })
+        
+        if result.get('mate') and not result.get('best_move'):
+            return jsonify({
+                "success": True,
+                "mate": True,
+                "mate_info": result.get('mate_info'),
+                "analysis": result,
+                "message": "Position has forced mate sequence"
+            })
+        
         best_move = result.get('best_move')
         if not best_move:
             return jsonify({"success": False, "error": "No valid move found"}), 400
         
-        new_board, success = apply_move(fen, result['best_move'])
+        new_board, success = apply_move(fen, best_move)
         if not success:
             return jsonify({"success": False, "error": "Failed to apply move"}), 400
 
