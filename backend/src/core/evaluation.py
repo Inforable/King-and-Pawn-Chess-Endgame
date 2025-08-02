@@ -100,3 +100,31 @@ def get_piece_value(piece_type):
         chess.KING: 0
     }
     return values.get(piece_type, 0)
+
+def order_moves(board, legal_moves):
+    move_scores = []
+    
+    for move in legal_moves:
+        score = 0
+        
+        # Jika move dapat meng-capture piece lawan
+        if board.is_capture(move):
+            captured_piece = board.piece_at(move.to_square)
+            if captured_piece:
+                score += get_piece_value(captured_piece.piece_type) * 10
+        
+        # Jika move membuat lawan check
+        board.push(move)
+        if board.is_check():
+            score += 50
+        board.pop()
+        
+        # Jika move membuat promosi (khusus pawn)
+        if move.promotion:
+            score += 900
+        
+        move_scores.append((move, score))
+    
+    # Sort berdasarkan score (descending)
+    move_scores.sort(key=lambda x: x[1], reverse=True)
+    return [move for move, _ in move_scores]
