@@ -110,7 +110,6 @@ export default function GameSetup() {
                     <option value="" disabled>Select algorithm</option>
                     <option value="mabp">Minimax + Alpha-Beta Pruning</option>
                     <option value="iterative_deepening">Iterative Deepening Search</option>
-                    <option value="pvs">Principal Variation Search (PVS)</option>
                     <option value="mcts">Monte Carlo Tree Search (MCTS)</option>
                 </select>
             </div>

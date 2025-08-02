@@ -8,7 +8,6 @@ sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 
 from core.chess_rules import validate_board, apply_move, randomize_board, mate_search
 from core.mabp import minimax_alpha_beta_pruning
-from core.pvs import principal_variation_search
 from core.mcts import monte_carlo_tree_search
 from core.iterative_deepening import iterative_deepening_search
 from util.board_parser import parse_board, board_to_positions
@@ -88,8 +87,6 @@ def solve():
         
         if algorithm == 'mabp':
             result = minimax_alpha_beta_pruning(fen, depth=5)
-        elif algorithm == 'pvs':
-            result = principal_variation_search(fen, depth=5)
         elif algorithm == 'mcts':
             result = monte_carlo_tree_search(fen, time_limit=5.0)
         elif algorithm == 'iterative_deepening':
