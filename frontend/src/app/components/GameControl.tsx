@@ -69,6 +69,75 @@ export default function GameControl() {
         }
     };
 
+    const getDetailedAnalysisDisplay = () => {
+        if (!state.analysis) return null;
+        
+        const analysis = state.analysis;
+        
+        return (
+            <div className="text-sm text-gray-600 mt-2">
+                <div className="font-medium mb-1">Analysis Details:</div>
+                <div className="bg-gray-50 p-3 rounded space-y-1">
+                    {/* Waktu */}
+                    {analysis.time !== undefined && (
+                        <div className="flex justify-between">
+                            <span>Time:</span>
+                            <span className="font-mono">{analysis.time.toFixed(3)}s</span>
+                        </div>
+                    )}
+
+                    {/* Evaluasi posisi */}
+                    {analysis.evaluation !== undefined && (
+                        <div className="flex justify-between">
+                            <span>Evaluation:</span>
+                            <span className="font-mono">{analysis.evaluation > 0 ? '+' : ''}{analysis.evaluation}</span>
+                        </div>
+                    )}
+
+                    {/* Depth pencarian */}
+                    {analysis.depth !== undefined && (
+                        <div className="flex justify-between">
+                            <span>Depth:</span>
+                            <span className="font-mono">{analysis.depth}</span>
+                        </div>
+                    )}
+
+                    {/* Node yang dieksplorasi */}
+                    {analysis.nodes_explored !== undefined && (
+                        <div className="flex justify-between">
+                            <span>Nodes Explored:</span>
+                            <span className="font-mono">{analysis.nodes_explored.toLocaleString()}</span>
+                        </div>
+                    )}
+
+                    {/* Iterasi (khusus MCTS) */}
+                    {analysis.iterations !== undefined && (
+                        <div className="flex justify-between">
+                            <span>Iterations:</span>
+                            <span className="font-mono">{analysis.iterations.toLocaleString()}</span>
+                        </div>
+                    )}
+
+                    {/* Status mate */}
+                    {analysis.mate && analysis.mate_info && (
+                        <div className="flex justify-between text-red-600 font-medium">
+                            <span>Mate Status:</span>
+                            <span>{analysis.mate_info.status}</span>
+                        </div>
+                    )}
+
+                    {/* Game over */}
+                    {analysis.game_over && (
+                        <div className="flex justify-between text-red-600 font-medium">
+                            <span>Game Over:</span>
+                            <span className="capitalize">{analysis.game_over_reason || 'Game Over'}</span>
+                        </div>
+                    )}
+                </div>
+            </div>
+        );
+    };
+
     return (
         <div>
             <h2 className="font-semibold text-xl mb-6">Game Control</h2>
@@ -100,45 +169,7 @@ export default function GameControl() {
                 </div>
             </div>
 
-            {state.analysis && (
-                <div className="mb-6">
-                    <div className="mb-2 font-medium">Analysis</div>
-                    <dl className="text-sm text-slate-600 leading-relaxed space-y-1">
-                        <div className="flex justify-between">
-                            <dt className="font-medium">Algorithm:</dt>
-                            <dd className="text-blue-600">{state.analysis.algorithm}</dd>
-                        </div>
-                        
-                        {state.analysis.nodes && (
-                            <div className="flex justify-between">
-                                <dt className="font-medium">Nodes Evaluated:</dt>
-                                <dd className="text-purple-600">{state.analysis.nodes.toLocaleString()}</dd>
-                            </div>
-                        )}
-                        
-                        {state.analysis.simulations && (
-                            <div className="flex justify-between">
-                                <dt className="font-medium">Simulations:</dt>
-                                <dd className="text-green-600">{state.analysis.simulations.toLocaleString()}</dd>
-                            </div>
-                        )}
-                        
-                        {state.analysis.max_depth_reached && (
-                            <div className="flex justify-between">
-                                <dt className="font-medium">Max Depth:</dt>
-                                <dd className="text-indigo-600">{state.analysis.max_depth_reached}</dd>
-                            </div>
-                        )}
-                        
-                        {state.analysis.time && (
-                            <div className="flex justify-between">
-                                <dt className="font-medium">Time Taken:</dt>
-                                <dd className="text-orange-600">{state.analysis.time}s</dd>
-                            </div>
-                        )}
-                    </dl>
-                </div>
-            )}
+            {getDetailedAnalysisDisplay()}
         </div>
     );
 }
