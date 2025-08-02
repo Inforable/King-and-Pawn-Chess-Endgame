@@ -88,10 +88,17 @@ class MCTSNode:
 
 def monte_carlo_tree_search(fen, max_iterations=5000, time_limit=5.0):
     try:
-        # Cek dulu mate dengan fungsi yang sudah ada
-        mate_result = mate_search(fen)
-        if mate_result['mate']:
-            return mate_result
+        board = chess.Board(fen)
+
+        # Cek posisi mate
+        mate_result = mate_search(board)
+        if mate_result.get('mate_in') is not None:
+            return {
+                'mate': True,
+                'best_move': None,
+                'evaluation': 0,
+                'mate_info': mate_result
+            }
         
         board = chess.Board(fen)
         

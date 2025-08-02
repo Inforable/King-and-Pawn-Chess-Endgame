@@ -3,14 +3,19 @@ import time
 from .chess_rules import mate_search
 from .evaluation import evaluate_board, order_moves
 
-def iterative_deepening_search(fen, max_depth=8, time_limit=5.0):
+def iterative_deepening_search(fen, max_depth=7, time_limit=5.0):
     try:
-        # Cek posisi mate
-        mate_result = mate_search(fen)
-        if mate_result['mate']:
-            return mate_result
-        
         board = chess.Board(fen)
+
+        # Cek posisi mate
+        mate_result = mate_search(board)
+        if mate_result.get('mate_in') is not None:
+            return {
+                'mate': True,
+                'best_move': None,
+                'evaluation': 0,
+                'mate_info': mate_result
+            }
         
         # Jika game over
         if board.is_game_over():
