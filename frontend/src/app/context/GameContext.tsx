@@ -27,7 +27,8 @@ type GameAction =
     | { type: 'ADD_TO_HISTORY'; payload: string }
     | { type: 'SET_HISTORY_INDEX'; payload: number }
     | { type: 'SET_CONNECTION_STATUS'; payload: 'connected' | 'disconnected' | 'checking' }
-    | { type: 'RESET_GAME' };
+    | { type: 'RESET_GAME' }
+    | { type: 'CLEAR_MOVE_DATA' };
 
 const initialState: GameState = {
     board: '',
@@ -95,6 +96,14 @@ function gameReducer(state: GameState, action: GameAction): GameState {
                 selectedAlgorithm: state.selectedAlgorithm,
                 currentTurn: 'black',
                 connectionStatus: state.connectionStatus
+            };
+        case 'CLEAR_MOVE_DATA':
+            return {
+                ...state,
+                analysis: null,
+                mateInfo: null,
+                historyIndex: null,
+                gameHistory: [],
             };
         default:
             return state;

@@ -17,6 +17,7 @@ export default function GameSetup() {
         try {
             const result = await ChessAPI.uploadBoard(file);
             if (result.success) {
+                dispatch({ type: 'CLEAR_MOVE_DATA' });
                 dispatch({
                     type: "SET_BOARD",
                     payload: {
@@ -45,6 +46,7 @@ export default function GameSetup() {
         try {
             const result = await ChessAPI.randomizeBoard();
             if (result.success) {
+                dispatch({ type: 'CLEAR_MOVE_DATA' });
                 dispatch({
                     type: "SET_BOARD",
                     payload: {
