@@ -71,6 +71,29 @@ export default function GameSetup() {
         dispatch({ type: "SET_ALGORITHM", payload: selectedAlgorithm });
     };
 
+    const getMateStatusDisplay = () => {
+        if (!state.mateInfo) return "Position loaded";
+        
+        // Tampilkan informasi mate in x moves, jika sudah ada
+        if (state.mateInfo.mate_in !== null && state.mateInfo.mate_in !== undefined) {
+            return `Mate in ${state.mateInfo.mate_in} moves for ${state.mateInfo.for_side}`;
+        }
+        
+        return state.mateInfo.status || "Game continues";
+    };
+
+    const getMateStatusColor = () => {
+        if (!state.mateInfo || !state.mateInfo.mate_in) {
+            return "bg-gray-50 border-gray-200 text-gray-600";
+        }
+        
+        if (state.mateInfo.for_side === "AI Magnus") {
+            return "bg-green-50 border-green-200 text-green-700";
+        } else {
+            return "bg-red-50 border-red-200 text-red-700";
+        }
+    };
+
     return (
         <div>
             <h2 className="font-semibold text-xl mb-6">Game Setup</h2>
@@ -114,6 +137,20 @@ export default function GameSetup() {
                     <option value="iterative_deepening">Iterative Deepening Search</option>
                     <option value="mcts">Monte Carlo Tree Search (MCTS)</option>
                 </select>
+            </div>
+            <div className="mt-6">
+                <div className="mb-2 font-medium">Game Status</div>
+                <div className={`border rounded-md p-3 text-center ${getMateStatusColor()}`}>
+                    <div className="font-semibold text-lg mb-1">
+                        {getMateStatusDisplay()}
+                    </div>
+                    <div className="text-sm opacity-75">
+                        Move: {state.gameHistory.length} | {state.currentTurn === 'white' ? 'AI Magnus' : 'Gukesh'} to play
+                    </div>
+                    {state.isLoading && (
+                        <div className="text-xs text-blue-500 mt-1">Computing...</div>
+                    )}
+                </div>
             </div>
         </div>
     );

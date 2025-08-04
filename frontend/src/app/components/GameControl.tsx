@@ -46,29 +46,6 @@ export default function GameControl() {
 
     const isButtonDisabled = state.isLoading || !state.board || !state.selectedAlgorithm || state.currentTurn !== 'white';
 
-    const getMateStatusDisplay = () => {
-        if (!state.mateInfo) return "Position loaded";
-        
-        // Tampilkan informasi mate in x moves, jika sudah ada
-        if (state.mateInfo.mate_in !== null && state.mateInfo.mate_in !== undefined) {
-            return `Mate in ${state.mateInfo.mate_in} moves for ${state.mateInfo.for_side}`;
-        }
-        
-        return state.mateInfo.status || "Game continues";
-    };
-
-    const getMateStatusColor = () => {
-        if (!state.mateInfo || !state.mateInfo.mate_in) {
-            return "bg-gray-50 border-gray-200 text-gray-600";
-        }
-        
-        if (state.mateInfo.for_side === "AI Magnus") {
-            return "bg-green-50 border-green-200 text-green-700";
-        } else {
-            return "bg-red-50 border-red-200 text-red-700";
-        }
-    };
-
     const getDetailedAnalysisDisplay = () => {
         if (!state.analysis) return null;
         
@@ -154,19 +131,63 @@ export default function GameControl() {
                 </button>
             </div>
 
-            <div className="mb-6">
-                <div className="mb-2 font-medium">Game Status</div>
-                <div className={`border rounded-md p-3 text-center ${getMateStatusColor()}`}>
-                    <div className="font-semibold text-lg mb-1">
-                        {getMateStatusDisplay()}
+            <div className="mt-6">
+                <div className="mb-2 font-medium">Reset Game</div>
+                <button
+                    onClick={() => {
+                        const confirmReset = window.confirm('Are you sure you want to reset the game? This will clear all progress.');
+                        if (confirmReset) {
+                            dispatch({ type: 'RESET_GAME' });
+                            alert('Game has been reset. Please upload a new board or randomize a position to start playing.');
+                        }
+                    }}
+                    className="w-full border border-red-200 rounded-md px-3 py-2 bg-white hover:bg-red-100 shadow-sm flex items-center justify-center gap-2 font-medium text-red-700"
+                >
+                    <i className="fas fa-refresh text-lg"></i>
+                    Reset Game
+                </button>
+            </div>
+
+            <div className="mt-6">
+                <div className="mb-2 font-medium">Game Playback</div>
+                {state.gameHistory.length === 0 ? (
+                    <div className="text-center text-gray-500 text-sm py-4 border rounded-md bg-gray-50">
+                        No moves recorded yet
                     </div>
-                    <div className="text-sm opacity-75">
-                        Move: {state.gameHistory.length} | {state.currentTurn === 'white' ? 'AI Magnus' : 'Gukesh'} to play
+                ) : (
+                    <div className="space-y-3">
+                        <div className="text-sm text-gray-600">
+                            Total moves: {state.gameHistory.length}
+                        </div>
+                        <div className="bg-gray-50 p-3 rounded border">
+                            <div className="text-xs font-medium mb-2">Move History:</div>
+                            <div className="max-h-32 overflow-y-auto space-y-1">
+                                {state.gameHistory.map((fen, index) => (
+                                    <div
+                                        key={index}
+                                        className="text-xs p-2 bg-white border rounded hover:bg-blue-50 cursor-pointer"
+                                        onClick={() => {
+                                            dispatch({
+                                                type: 'SET_BOARD',
+                                                payload: {
+                                                    board: fen,
+                                                    positions: null
+                                                }
+                                            });
+                                        }}
+                                    >
+                                        <div className="flex justify-between">
+                                            <span className="font-mono">Move #{index + 1}</span>
+                                            <span className="text-gray-500">
+                                                {fen.split(' ')[1] === 'w' ? 'White to play' : 'Black to play'}
+                                            </span>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
                     </div>
-                    {state.isLoading && (
-                        <div className="text-xs text-blue-500 mt-1">Computing...</div>
-                    )}
-                </div>
+                )}
             </div>
 
             {getDetailedAnalysisDisplay()}
