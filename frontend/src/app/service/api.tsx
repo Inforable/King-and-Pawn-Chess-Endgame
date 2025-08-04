@@ -98,4 +98,21 @@ export class ChessAPI {
 
         return response.json();
     }
+
+    static async parseFen(fen: string) {
+        const response = await fetch(`${API_BASE}/parse-fen`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ fen })
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({ error: 'Failed to parse FEN' }));
+            throw new Error(errorData.error || 'Failed to parse FEN');
+        }
+
+        return response.json();
+    }
 }

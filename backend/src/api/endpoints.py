@@ -215,5 +215,29 @@ def get_legal_moves():
 def health_check():
     return jsonify({"status": "healthy", "message": "Chess API is running"})
 
+@app.route('/api/parse-fen', methods=['POST'])
+def parse_fen():
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({"success": False, "error": "No data provided"}), 400
+        
+        fen = data.get('fen')
+        if not fen:
+            return jsonify({"success": False, "error": "Missing fen"}), 400
+        
+        board = chess.Board(fen)
+        positions = board_to_positions(board)
+        mate_info = mate_search(board)
+        
+        return jsonify({
+            "success": True,
+            "positions": positions,
+            "mate_info": mate_info
+        })
+        
+    except Exception as e:
+        return jsonify({"success": False, "error": f"Failed to parse FEN: {str(e)}"}), 500
+
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)

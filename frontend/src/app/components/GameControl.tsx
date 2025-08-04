@@ -166,14 +166,34 @@ export default function GameControl() {
                                     <div
                                         key={index}
                                         className="text-xs p-2 bg-white border rounded hover:bg-blue-50 cursor-pointer"
-                                        onClick={() => {
-                                            dispatch({
-                                                type: 'SET_BOARD',
-                                                payload: {
-                                                    board: fen,
-                                                    positions: null
+                                        onClick={async () => {
+                                            console.log('Loading board from history:', fen);
+                                            
+                                            if (!fen || typeof fen !== 'string' || fen.trim() === '') {
+                                                console.error('Invalid FEN in history:', fen);
+                                                alert('Invalid board data in history');
+                                                return;
+                                            }
+                                            
+                                            try {
+                                                const result = await ChessAPI.parseFen(fen);
+                                                if (result.success) {
+                                                    dispatch({
+                                                        type: 'SET_BOARD',
+                                                        payload: {
+                                                            board: fen,
+                                                            positions: result.positions,
+                                                            mateInfo: result.mate_info
+                                                        }
+                                                    });
+                                                } else {
+                                                    console.error('API error:', result.error);
+                                                    alert('Failed to load board from history');
                                                 }
-                                            });
+                                            } catch (error) {
+                                                console.error('Error loading board from history:', error);
+                                                alert('Network error while loading board');
+                                            }
                                         }}
                                     >
                                         <div className="flex justify-between">

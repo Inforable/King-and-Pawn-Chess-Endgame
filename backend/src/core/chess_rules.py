@@ -108,6 +108,7 @@ def mate_search(board, max_depth=5):
         winner = "AI Magnus" if board.turn == chess.BLACK else "black"
         return {
             "mate_in": 0,
+            "for_side": "Gukesh",
             "winner": winner,
             "status": f"Checkmate - {winner.title()} wins"
         }
