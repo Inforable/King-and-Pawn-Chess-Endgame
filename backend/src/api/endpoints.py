@@ -123,9 +123,9 @@ def solve():
         if algorithm == 'mabp':
             result = minimax_alpha_beta_pruning(fen, depth=5)
         elif algorithm == 'mcts':
-            result = monte_carlo_tree_search(fen, time_limit=5.0)
+            result = monte_carlo_tree_search(fen, time_limit=7.0)
         elif algorithm == 'iterative_deepening':
-            result = iterative_deepening_search(fen, max_depth=5, time_limit=5.0)
+            result = iterative_deepening_search(fen, max_depth=5, time_limit=7.0)
         else:
             return jsonify({"success": False, "error": "Invalid algorithm"}), 400
 

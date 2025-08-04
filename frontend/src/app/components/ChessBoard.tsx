@@ -3,6 +3,7 @@
 import React, { useEffect } from "react";
 import { useGame } from "../context/GameContext";
 import { ChessAPI } from "../service/api";
+import PromotionModal from "./PromotionModal";
 
 export default function ChessBoard() {
     const { state, dispatch } = useGame();
@@ -32,6 +33,44 @@ export default function ChessBoard() {
 
         loadLegalMoves();
     }, [state.selectedSquare, state.board, dispatch]);
+
+    const checkAndMakeMove = async (move: string, toSquare: string) => {
+        const fromSquare = state.selectedSquare;
+        const piece = getPieceAt(fromSquare!);
+
+        // Cek apakah move dari pawn akan promotion
+        if (piece && piece.includes('pawn') && piece.includes('white')) {
+            const toRank = toSquare[1];
+            console.log('White pawn move to rank:', toRank); // Debugging
+            
+            if (toRank === '8') {
+                console.log('Starting promotion process'); // Debugging
+                // Start promotion process
+                dispatch({
+                    type: 'START_PROMOTION',
+                    payload: {
+                        move: move
+                    }
+                });
+                return;
+            }
+        }
+        
+        await makeMove(move);
+    };
+
+    const handlePromotion = async (promotionPiece: string) => {
+        if (!state.promotionData.move) return;
+
+        const promotionMove = state.promotionData.move + promotionPiece;
+        console.log('Making promotion move:', promotionMove); // Debugging
+        await makeMove(promotionMove);
+        dispatch({ type: 'COMPLETE_PROMOTION' });
+    };
+
+    const handleCancelPromotion = () => {
+        dispatch({ type: 'CANCEL_PROMOTION' });
+    };
 
     const handleSquareClick = async (square: string) => {
         // Validasi apakah board sudah ada atau belum
@@ -63,7 +102,7 @@ export default function ChessBoard() {
             // Move ke square lain jika legal moves
             if (state.legalMoves.includes(square)) {
                 const move = `${state.selectedSquare}${square}`;
-                await makeMove(move);
+                await checkAndMakeMove(move, square); 
             } else {
                 const piece = getPieceAt(square);
                 if (piece && piece.includes('black')) {
@@ -124,12 +163,7 @@ export default function ChessBoard() {
             'white_rook': 'fas fa-chess-rook text-white',
             'white_bishop': 'fas fa-chess-bishop text-white',
             'white_knight': 'fas fa-chess-knight text-white',
-            'black_king': 'fas fa-chess-king text-gray-800',
-            'black_pawn': 'fas fa-chess-pawn text-gray-800',
-            'black_queen': 'fas fa-chess-queen text-gray-800',
-            'black_rook': 'fas fa-chess-rook text-gray-800',
-            'black_bishop': 'fas fa-chess-bishop text-gray-800',
-            'black_knight': 'fas fa-chess-knight text-gray-800',
+            'black_king': 'fas fa-chess-king text-black',
         };
 
         return <i className={`${pieceIcons[piece]} text-4xl drop-shadow-lg`} />;
@@ -273,6 +307,12 @@ export default function ChessBoard() {
                     </div>
                 )}
             </div>
+            {/* Promotion Modal */}
+            <PromotionModal
+                isOpen={state.promotionData.isPromoting}
+                onPromote={handlePromotion}
+                onCancel={handleCancelPromotion}
+            />
         </div>
     );
 }

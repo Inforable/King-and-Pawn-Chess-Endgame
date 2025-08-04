@@ -34,13 +34,18 @@ export class ChessAPI {
         return response.json();
     }
 
-    static async solvePosition(fen: string, algorithm: string) {
+    static async solvePosition(fen: string, algorithm: string, promotionMove?: string) {
+        const body: any = { fen, algorithm };
+        if (promotionMove) {
+            body.promotion_move = promotionMove;
+        }
+
         const response = await fetch(`${API_BASE}/solve`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({ fen, algorithm })
+            body: JSON.stringify(body)
         });
 
         if (!response.ok) {
@@ -89,16 +94,6 @@ export class ChessAPI {
         return response.json();
     }
 
-        static async checkHealth() {
-        const response = await fetch(`${API_BASE}/health`);
-        
-        if (!response.ok) {
-            throw new Error('Server is not responding');
-        }
-
-        return response.json();
-    }
-
     static async parseFen(fen: string) {
         const response = await fetch(`${API_BASE}/parse-fen`, {
             method: 'POST',
@@ -111,6 +106,16 @@ export class ChessAPI {
         if (!response.ok) {
             const errorData = await response.json().catch(() => ({ error: 'Failed to parse FEN' }));
             throw new Error(errorData.error || 'Failed to parse FEN');
+        }
+
+        return response.json();
+    }
+
+    static async checkHealth() {
+        const response = await fetch(`${API_BASE}/health`);
+        
+        if (!response.ok) {
+            throw new Error('Server is not responding');
         }
 
         return response.json();

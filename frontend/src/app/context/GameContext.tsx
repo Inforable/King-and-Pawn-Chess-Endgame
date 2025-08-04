@@ -15,6 +15,10 @@ interface GameState {
     historyIndex: number | null;
     isLoading: boolean;
     connectionStatus: 'connected' | 'disconnected' | 'checking';
+    promotionData: {
+        isPromoting: boolean;
+        move: string | null;
+    };
 }
 
 type GameAction = 
@@ -23,10 +27,14 @@ type GameAction =
     | { type: 'SET_LEGAL_MOVES'; payload: string[] }
     | { type: 'SET_ALGORITHM'; payload: string }
     | { type: 'SET_ANALYSIS'; payload: any }
+    | { type: 'SET_MATE_INFO'; payload: any }
     | { type: 'SET_LOADING'; payload: boolean }
     | { type: 'ADD_TO_HISTORY'; payload: string }
     | { type: 'SET_HISTORY_INDEX'; payload: number }
     | { type: 'SET_CONNECTION_STATUS'; payload: 'connected' | 'disconnected' | 'checking' }
+    | { type: 'START_PROMOTION'; payload: { move: string } }
+    | { type: 'CANCEL_PROMOTION' }
+    | { type: 'COMPLETE_PROMOTION' }
     | { type: 'RESET_GAME' }
     | { type: 'CLEAR_MOVE_DATA' };
 
@@ -42,34 +50,43 @@ const initialState: GameState = {
     gameHistory: [],
     historyIndex: null,
     isLoading: false,
-    connectionStatus: 'checking'
+    connectionStatus: 'checking',
+    promotionData: {
+        isPromoting: false,
+        move: null
+    }
 };
 
 function gameReducer(state: GameState, action: GameAction): GameState {
     switch (action.type) {
         case 'SET_BOARD':
-            const boardFen = action.payload.board;
+            const boardFen = action.payload?.board;
             console.log('SET_BOARD payload:', action.payload);
             console.log('Board FEN:', boardFen);
             
-            if (!boardFen) {
-                console.error('SET_BOARD called without board field!');
+            if (!boardFen || typeof boardFen !== 'string' || boardFen.trim() === '') {
+                console.error('SET_BOARD called without valid board field!', action.payload);
                 return state;
             }
             
-            const newCurrentTurn = boardFen.includes(' w ') ? 'white' : 'black';
-            console.log('Calculated currentTurn:', newCurrentTurn);
-            
-            return {
-                ...state,
-                board: boardFen,
-                positions: action.payload.positions,
-                mateInfo: action.payload.mateInfo || null,
-                currentTurn: newCurrentTurn,
-                selectedSquare: null,
-                legalMoves: [],
-                historyIndex: null
-            };
+            try {
+                const newCurrentTurn = boardFen.includes(' w ') ? 'white' : 'black';
+                console.log('Calculated currentTurn:', newCurrentTurn);
+                
+                return {
+                    ...state,
+                    board: boardFen,
+                    positions: action.payload?.positions || {},
+                    mateInfo: action.payload?.mateInfo || null,
+                    currentTurn: newCurrentTurn,
+                    selectedSquare: null,
+                    legalMoves: [],
+                    historyIndex: null
+                };
+            } catch (error) {
+                console.error('Error processing SET_BOARD:', error);
+                return state;
+            }
         case 'SET_SELECTED_SQUARE':
             return { ...state, selectedSquare: action.payload };
         case 'SET_LEGAL_MOVES':
@@ -78,9 +95,15 @@ function gameReducer(state: GameState, action: GameAction): GameState {
             return { ...state, selectedAlgorithm: action.payload };
         case 'SET_ANALYSIS':
             return { ...state, analysis: action.payload };
+        case 'SET_MATE_INFO':
+            return { ...state, mateInfo: action.payload };
         case 'SET_LOADING':
             return { ...state, isLoading: action.payload };
         case 'ADD_TO_HISTORY':
+            if (!action.payload || typeof action.payload !== 'string' || action.payload.trim() === '') {
+                console.error('Invalid FEN being added to history:', action.payload);
+                return state;
+            }
             return { 
                 ...state, 
                 gameHistory: [...state.gameHistory, action.payload],
@@ -90,6 +113,30 @@ function gameReducer(state: GameState, action: GameAction): GameState {
             return { ...state, historyIndex: action.payload };
         case 'SET_CONNECTION_STATUS':
             return { ...state, connectionStatus: action.payload };
+        case 'START_PROMOTION':
+            return {
+                ...state,
+                promotionData: {
+                    isPromoting: true,
+                    move: action.payload.move
+                }
+            };
+        case 'CANCEL_PROMOTION':
+            return {
+                ...state,
+                promotionData: {
+                    isPromoting: false,
+                    move: null
+                }
+            };
+        case 'COMPLETE_PROMOTION':
+            return {
+                ...state,
+                promotionData: {
+                    isPromoting: false,
+                    move: null
+                }
+            };
         case 'RESET_GAME':
             return { 
                 ...initialState, 

@@ -3,7 +3,7 @@ import time
 from .chess_rules import mate_search
 from .evaluation import evaluate_board, order_moves
 
-def iterative_deepening_search(fen, max_depth=5, time_limit=5.0):
+def iterative_deepening_search(fen, max_depth=5, time_limit=7.0):
     try:
         board = chess.Board(fen)
 

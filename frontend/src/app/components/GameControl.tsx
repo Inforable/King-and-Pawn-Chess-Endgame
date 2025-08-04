@@ -3,28 +3,114 @@
 import React from "react";
 import { useGame } from "../context/GameContext";
 import { ChessAPI } from "../service/api";
+import PromotionModal from "./PromotionModal";
 
 export default function GameControl() {
     const { state, dispatch } = useGame();
 
     const handleSolve = async () => {
-        // Validasi untuk board dan algoritma
         if (!state.board || !state.selectedAlgorithm) {
             alert('Please select a board and an algorithm');
             return;
         }
 
-        // Validasi giliran untuk AI Magnus
         if (state.currentTurn !== 'white') {
             alert(`Wait for Gukesh to make a move first. Current turn: ${state.currentTurn}`);
             return;
         }  
         
-        // Solve
         dispatch({ type: "SET_LOADING", payload: true });
         try {
             const result = await ChessAPI.solvePosition(state.board, state.selectedAlgorithm);
+            
             if (result.success) {
+                if (result.promotion_required) {
+                    dispatch({
+                        type: 'START_PROMOTION',
+                        payload: {
+                            move: result.move
+                        }
+                    });
+                    dispatch({ type: 'SET_ANALYSIS', payload: result.analysis });
+                    return;
+                }
+
+                if (result.game_over) {
+                    dispatch({ type: 'SET_ANALYSIS', payload: result.analysis });
+                    
+                    if (result.mate_info) {
+                        result.mate_info.winner = result.winner;
+                    }
+                    
+                    dispatch({ type: 'SET_MATE_INFO', payload: result.mate_info });
+                    
+                    const winner = result.winner;
+                    let gameOverMessage = result.game_over_reason || 'Game Over';
+                    
+                    if (winner) {
+                        gameOverMessage = `${winner} wins! ${gameOverMessage}`;
+                    } else {
+                        gameOverMessage = `Draw! ${gameOverMessage}`;
+                    }
+                    
+                    const shouldRestart = window.confirm(
+                        `${gameOverMessage}\n\nWould you like to start a new game?\n\nClick OK to reset, or Cancel to analyze this position.`
+                    );
+                    if (shouldRestart) {
+                        dispatch({ type: 'RESET_GAME' });
+                        alert('Game has been reset. Please upload a new board or randomize a position to start playing.');
+                    }
+                    return;
+                }
+
+                if (result.move && result.board) {
+                    dispatch({
+                        type: 'SET_BOARD',
+                        payload: {
+                            board: result.board,
+                            positions: result.positions,
+                            mateInfo: result.mate_info
+                        }
+                    });
+                    dispatch({ type: 'SET_ANALYSIS', payload: result.analysis });
+                    
+                    if (result.board && typeof result.board === 'string' && result.board.trim() !== '') {
+                        dispatch({ type: 'ADD_TO_HISTORY', payload: result.board });
+                    }
+                } else {
+                    console.error('No move or board in solve result:', result);
+                    alert('No valid move found');
+                }
+            } else {
+                const errorMessage = result.error || 'Failed to solve position';
+                alert(`Error: ${errorMessage}`);
+            }
+        } catch (error) {
+            console.error('Solve error:', error);
+            alert('Network error: Failed to communicate with the server. Please check your connection and try again.');
+        } finally {
+            dispatch({ type: "SET_LOADING", payload: false });
+        }
+    };
+
+    const handleAIPromotion = async (promotionPiece: string) => {
+        if (!state.promotionData.move) return;
+
+        const baseMove = state.promotionData.move;
+        let promotionMove;
+
+        if (baseMove.length === 4) {
+            promotionMove = baseMove + promotionPiece;
+        } else {
+            promotionMove = baseMove.substring(0, 4) + promotionPiece;
+        }
+
+        try {
+            dispatch({ type: "SET_LOADING", payload: true });
+            const result = await ChessAPI.solvePosition(state.board, state.selectedAlgorithm, promotionMove);
+            console.log('Promotion result:', result);
+            
+            if (result.success && result.board) {
                 dispatch({
                     type: 'SET_BOARD',
                     payload: {
@@ -34,14 +120,26 @@ export default function GameControl() {
                     }
                 });
                 dispatch({ type: 'SET_ANALYSIS', payload: result.analysis });
-                dispatch({ type: 'ADD_TO_HISTORY', payload: result.board });
+                
+                if (result.board && typeof result.board === 'string' && result.board.trim() !== '') {
+                    dispatch({ type: 'ADD_TO_HISTORY', payload: result.board });
+                }
+                
+                dispatch({ type: 'COMPLETE_PROMOTION' });
+            } else {
+                console.error('Promotion failed:', result);
+                alert('Failed to complete promotion');
             }
         } catch (error) {
-            console.error('Solve error:', error);
-            alert('Failed to solve position');
+            console.error('AI promotion error:', error);
+            alert('Failed to complete AI promotion');
         } finally {
             dispatch({ type: "SET_LOADING", payload: false });
         }
+    };
+
+    const handleCancelPromotion = () => {
+        dispatch({ type: 'CANCEL_PROMOTION' });
     };
 
     const isButtonDisabled = state.isLoading || !state.board || !state.selectedAlgorithm || state.currentTurn !== 'white';
@@ -55,7 +153,6 @@ export default function GameControl() {
             <div className="text-sm text-gray-600 mt-2">
                 <div className="font-medium mb-1">Analysis Details:</div>
                 <div className="bg-gray-50 p-3 rounded space-y-1">
-                    {/* Waktu */}
                     {analysis.time !== undefined && (
                         <div className="flex justify-between">
                             <span>Time:</span>
@@ -63,7 +160,6 @@ export default function GameControl() {
                         </div>
                     )}
 
-                    {/* Evaluasi posisi */}
                     {analysis.evaluation !== undefined && (
                         <div className="flex justify-between">
                             <span>Evaluation:</span>
@@ -71,7 +167,6 @@ export default function GameControl() {
                         </div>
                     )}
 
-                    {/* Depth pencarian */}
                     {analysis.depth !== undefined && (
                         <div className="flex justify-between">
                             <span>Depth:</span>
@@ -79,7 +174,6 @@ export default function GameControl() {
                         </div>
                     )}
 
-                    {/* Node yang dieksplorasi */}
                     {analysis.nodes_explored !== undefined && (
                         <div className="flex justify-between">
                             <span>Nodes Explored:</span>
@@ -87,7 +181,6 @@ export default function GameControl() {
                         </div>
                     )}
 
-                    {/* Iterasi (khusus MCTS) */}
                     {analysis.iterations !== undefined && (
                         <div className="flex justify-between">
                             <span>Iterations:</span>
@@ -95,7 +188,6 @@ export default function GameControl() {
                         </div>
                     )}
 
-                    {/* Status mate */}
                     {analysis.mate && analysis.mate_info && (
                         <div className="flex justify-between text-red-600 font-medium">
                             <span>Mate Status:</span>
@@ -103,7 +195,6 @@ export default function GameControl() {
                         </div>
                     )}
 
-                    {/* Game over */}
                     {analysis.game_over && (
                         <div className="flex justify-between text-red-600 font-medium">
                             <span>Game Over:</span>
@@ -141,7 +232,7 @@ export default function GameControl() {
                             alert('Game has been reset. Please upload a new board or randomize a position to start playing.');
                         }
                     }}
-                    className="w-full border border-red-200 rounded-md px-3 py-2 bg-white hover:bg-red-100 shadow-sm flex items-center justify-center gap-2 font-medium text-red-700"
+                    className="w-full border border-red-200 rounded-md px-3 py-2 bg-red-50 hover:bg-red-100 shadow-sm flex items-center justify-center gap-2 font-medium text-red-700"
                 >
                     <i className="fas fa-refresh text-lg"></i>
                     Reset Game
@@ -162,53 +253,78 @@ export default function GameControl() {
                         <div className="bg-gray-50 p-3 rounded border">
                             <div className="text-xs font-medium mb-2">Move History:</div>
                             <div className="max-h-32 overflow-y-auto space-y-1">
-                                {state.gameHistory.map((fen, index) => (
-                                    <div
-                                        key={index}
-                                        className="text-xs p-2 bg-white border rounded hover:bg-blue-50 cursor-pointer"
-                                        onClick={async () => {
-                                            console.log('Loading board from history:', fen);
-                                            
-                                            if (!fen || typeof fen !== 'string' || fen.trim() === '') {
-                                                console.error('Invalid FEN in history:', fen);
-                                                alert('Invalid board data in history');
-                                                return;
-                                            }
-                                            
-                                            try {
-                                                const result = await ChessAPI.parseFen(fen);
-                                                if (result.success) {
-                                                    dispatch({
-                                                        type: 'SET_BOARD',
-                                                        payload: {
-                                                            board: fen,
-                                                            positions: result.positions,
-                                                            mateInfo: result.mate_info
+                                {state.gameHistory
+                                    .filter((fen, index) => {
+                                        const isValid = fen && 
+                                                       typeof fen === 'string' && 
+                                                       fen.trim() !== '' && 
+                                                       fen.includes('/') && 
+                                                       fen.split(' ').length >= 2;
+                                        
+                                        if (!isValid) {
+                                            console.warn(`Invalid FEN at history index ${index}:`, fen);
+                                        }
+                                        return isValid;
+                                    })
+                                    .map((fen, filteredIndex) => {
+                                        const fenParts = fen.split(' ');
+                                        const turn = fenParts.length >= 2 ? fenParts[1] : 'unknown';
+                                        
+                                        return (
+                                            <div
+                                                key={filteredIndex}
+                                                className="text-xs p-2 bg-white border rounded hover:bg-blue-50 cursor-pointer"
+                                                onClick={async () => {
+                                                    console.log('Loading board from history:', fen);
+                                                    
+                                                    if (!fen || typeof fen !== 'string' || fen.trim() === '') {
+                                                        console.error('Invalid FEN in history:', fen);
+                                                        alert('Invalid board data in history');
+                                                        return;
+                                                    }
+                                                    
+                                                    try {
+                                                        const result = await ChessAPI.parseFen(fen);
+                                                        if (result.success) {
+                                                            dispatch({
+                                                                type: 'SET_BOARD',
+                                                                payload: {
+                                                                    board: fen,
+                                                                    positions: result.positions,
+                                                                    mateInfo: result.mate_info
+                                                                }
+                                                            });
+                                                        } else {
+                                                            console.error('API error:', result.error);
+                                                            alert('Failed to load board from history');
                                                         }
-                                                    });
-                                                } else {
-                                                    console.error('API error:', result.error);
-                                                    alert('Failed to load board from history');
-                                                }
-                                            } catch (error) {
-                                                console.error('Error loading board from history:', error);
-                                                alert('Network error while loading board');
-                                            }
-                                        }}
-                                    >
-                                        <div className="flex justify-between">
-                                            <span className="font-mono">Move #{index + 1}</span>
-                                            <span className="text-gray-500">
-                                                {fen.split(' ')[1] === 'w' ? 'White to play' : 'Black to play'}
-                                            </span>
-                                        </div>
-                                    </div>
-                                ))}
+                                                    } catch (error) {
+                                                        console.error('Error loading board from history:', error);
+                                                        alert('Network error while loading board');
+                                                    }
+                                                }}
+                                            >
+                                                <div className="flex justify-between">
+                                                    <span className="font-mono">Move #{filteredIndex + 1}</span>
+                                                    <span className="text-gray-500">
+                                                        {turn === 'w' ? 'White to play' : turn === 'b' ? 'Black to play' : 'Unknown turn'}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        );
+                                    })
+                                }
                             </div>
                         </div>
                     </div>
                 )}
             </div>
+
+            <PromotionModal
+                isOpen={state.promotionData.isPromoting}
+                onPromote={handleAIPromotion}
+                onCancel={handleCancelPromotion}
+            />
 
             {getDetailedAnalysisDisplay()}
         </div>
