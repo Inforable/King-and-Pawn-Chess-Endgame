@@ -12,7 +12,7 @@ export default function Page() {
                     <h1 className="text-4xl font-bold tracking-tight mb-2"> AI Magnus vs Gukesh </h1>
                     <p className="text-lg text-slate-600 mb-4"> Chess Endgame Solver </p>
                     <div className="flex justify-center gap-4 text-sm text-slate-700">
-                        <span className="px-3 py-1 border border-slate-300 rounded-full bg-white flex items-center gap-2 shadow-sm">
+                        <span className="px-3 py-1 border border-slate-300 rounded-full bg-black text-white flex items-center gap-2 shadow-sm">
                             AI Magnus: <i className="fas fa-chess-king text-white text-xl drop-shadow"></i> <i className="fas fa-chess-pawn text-white text-xl drop-shadow"></i> <strong> (White) </strong>
                         </span>
                         <span className="px-3 py-1 border border-slate-300 rounded-full bg-white flex items-center gap-2 shadow-sm">
