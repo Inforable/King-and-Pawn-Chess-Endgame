@@ -56,9 +56,9 @@ def apply_move(fen, move_uci):
         board.push(move)
         
         # Promosi bidak jika mencapai baris terakhir
-        if board.piece_at(move.to_square) and board.piece_at(move.to_square).piece_type == chess.PAWN:
-            if chess.square_rank(move.to_square) == 7:
-                board.set_piece_at(move.to_square, chess.Piece(chess.QUEEN, chess.WHITE))
+        # if board.piece_at(move.to_square) and board.piece_at(move.to_square).piece_type == chess.PAWN:
+        #     if chess.square_rank(move.to_square) == 7:
+        #         board.set_piece_at(move.to_square, chess.Piece(chess.QUEEN, chess.WHITE))
         
         return board, True
         
@@ -103,12 +103,12 @@ def randomize_board():
             continue
 
 def mate_search(board, max_depth=5):
-    # Kondisi jika game over
+    # Kondisi jika checkmate
     if board.is_checkmate():
-        winner = "AI Magnus" if board.turn == chess.BLACK else "black"
+        winner = "AI Magnus"
         return {
             "mate_in": 0,
-            "for_side": "Gukesh",
+            "for_side": "AI Magnus",
             "winner": winner,
             "status": f"Checkmate - {winner.title()} wins"
         }
@@ -130,24 +130,27 @@ def mate_search(board, max_depth=5):
         }
     
     for depth in range(1, max_depth + 1):
-        if board.turn == chess.BLACK:
+        if board.turn == chess.WHITE:
             mate_moves = search_forced_mate(board, depth, True)
             if mate_moves is not None:
                 return {
                     "mate_in": mate_moves,
-                    "for_side": "Gukesh",
+                    "for_side": "AI Magnus",
                     "winner": None,
-                    "status": f"Mate in {mate_moves} moves for Gukesh"
+                    "status": f"Mate in {mate_moves} moves for AI Magnus"
                 }
     
+    # Jika tidak terjadi apa"
     return {
         "mate_in": None,
         "for_side": None,
         "status": "Game Continues"
     }
 
+# Fungsi untuk mencari forced mate menggunakan minimax
 def search_forced_mate(board, max_depth, is_attacker_turn):
     def mate_minimax(board, depth, is_maximizing):
+
         # Base case jika checkmate ditemukan
         if board.is_checkmate():
             return depth
@@ -192,5 +195,5 @@ def search_forced_mate(board, max_depth, is_attacker_turn):
     
     result = mate_minimax(board, max_depth, is_attacker_turn)
     if result is not None:
-        return max_depth - result + 1
+        return max_depth - result # jumlah langkah
     return None
