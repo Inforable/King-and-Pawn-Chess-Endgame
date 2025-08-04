@@ -129,26 +129,15 @@ def mate_search(board, max_depth=5):
         }
     
     for depth in range(1, max_depth + 1):
-        # Cek mate untuk white (AI Magnus)
-        if board.turn == chess.WHITE:
+        if board.turn == chess.BLACK:
             mate_moves = search_forced_mate(board, depth, True)
             if mate_moves is not None:
                 return {
                     "mate_in": mate_moves,
-                    "for_side": "AI Magnus",
-                    "status": f"Mate in {mate_moves} moves for AI Magnus"
+                    "for_side": "Gukesh",
+                    "winner": None,
+                    "status": f"Mate in {mate_moves} moves for Gukesh"
                 }
-        
-        board_copy = board.copy()
-        board_copy.turn = chess.BLACK
-        # Cek mate untuk black (Gukesh)
-        mate_moves = search_forced_mate(board_copy, depth, False)
-        if mate_moves is not None:
-            return {
-                "mate_in": mate_moves,
-                "for_side": "Gukesh",
-                "status": f"Mate in {mate_moves} moves for Gukesh"
-            }
     
     return {
         "mate_in": None,
