@@ -9,7 +9,7 @@ def evaluate_board(board):
     
     score = 0
 
-    # Value untuk setiap piece (harusnya cukup pawn, queen, sama king si, cuma ntar sekalian untuk bonus promotion)
+    # Value untuk setiap piece
     pieces_values = {
         chess.PAWN: 100,
         chess.KNIGHT: 320,

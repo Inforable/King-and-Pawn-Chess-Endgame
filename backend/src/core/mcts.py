@@ -49,7 +49,7 @@ class MCTSNode:
             
             # Random move dengan sedikit bias ke move yang baik
             if random.random() < 0.3 and len(legal_moves) > 1:
-                # 30% peluang pilih move terbaik dari 3 random move
+                # 30% peluang move terbaik dari 3 random move
                 sample_moves = random.sample(legal_moves, min(3, len(legal_moves)))
                 best_move = sample_moves[0]
                 best_eval = float('-inf')
@@ -86,7 +86,7 @@ class MCTSNode:
         if self.parent:
             self.parent.backpropagate(-result)
 
-def monte_carlo_tree_search(fen, max_iterations=5000, time_limit=5.0):
+def monte_carlo_tree_search(fen, max_iterations=5000, time_limit=7.0):
     try:
         board = chess.Board(fen)
 
@@ -149,7 +149,7 @@ def monte_carlo_tree_search(fen, max_iterations=5000, time_limit=5.0):
         
         # Hitung evaluation dari best child
         evaluation = best_child.wins / best_child.visits if best_child.visits > 0 else 0
-        evaluation *= 1000  # Scale untuk konsistensi dengan algoritma lain
+        evaluation *= 100
         
         end_time = time.time()
         time_taken = end_time - start_time
